@@ -1,6 +1,7 @@
 import Card from '@/components/card';
 import { supabase } from '@/utils/supabase';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 
 
 // Debounce function to delay execution of the search function
@@ -25,18 +26,53 @@ const Add: React.FC = () => {
     const [wordMain, setWordMain] = useState<any>("");
     const [wordContain, setWordContain] = useState<any>([]);
 
+    const textInput = useRef<any>(null);
+
+    const resetForm = () => {
+        setInputValue("")
+        setWordMain("")
+        setWordContain([])
+        textInput.current?.focus();
+    }
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
     };
 
-    const handleClick = async (e: React.MouseEvent<HTMLButtonElement>, targetID: number) => {
+    const handleClick = async (e: React.MouseEvent<HTMLButtonElement>, targetID: any) => {
         console.log(targetID);
 
         let { data: kotoba_score, error } = await supabase
             .from('kotoba_score')
-            .select('*')
+            .select('*').eq("kotoba_id", targetID.id)
+        console.log(targetID.id);
+
+        if (error) {
+            toast.error(error.message)
+        }
+        
+        if (kotoba_score?.length == 0) {
+            let res = await supabase
+            .from('kotoba_score')
+            .insert([
+                { kotoba_id: targetID.id, score: 0 },
+            ])
+            .select()
+        
+            if (!res.error) {
+                toast.success("Added");
+                resetForm()
+            } else{
+                toast.error(res.error.message)
+            }
+        } else {
+            toast.error("Item already exist")
+            resetForm()
+        }
+
+
+
     };
 
 
@@ -81,7 +117,10 @@ const Add: React.FC = () => {
 
     return (
         <div className="flex justify-center items-center  text-white ">
-
+            <Toaster
+                position="top-right"
+                reverseOrder={false}
+            />
             <form>
 
                 <div className="w-screen lg:px-40 lg:pt-60 px-10 pt-28">
@@ -90,6 +129,7 @@ const Add: React.FC = () => {
                         type="text"
                         value={inputValue} // Bind the input value to the state
                         onChange={handleChange} // Use handleChange to update the state
+                        ref={textInput}
                     />
 
 
@@ -97,7 +137,7 @@ const Add: React.FC = () => {
                         <button className=' w-full  ' type="button" onClick={(e) => handleClick(e, wordMain[0])} >
                             {
                                 wordMain[0] &&
-                            <Card data={wordMain} />
+                                <Card data={wordMain} />
                             }
                         </button>
                     </div>
