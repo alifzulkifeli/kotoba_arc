@@ -17,6 +17,8 @@ const debounce = <T extends AnyFunction>(func: T, delay: number): (...args: Para
     };
 };
 
+
+
 const Add: React.FC = () => {
     // Define state to hold the input value
     const [inputValue, setInputValue] = useState<string>('');
@@ -28,6 +30,16 @@ const Add: React.FC = () => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
     };
+
+    const handleClick = async (e: React.MouseEvent<HTMLButtonElement>, targetID: number) => {
+        console.log(targetID);
+
+        let { data: kotoba_score, error } = await supabase
+            .from('kotoba_score')
+            .select('*')
+    };
+
+
 
     // Search function to call the database or API
     const searchDatabase = async (query: any) => {
@@ -47,12 +59,9 @@ const Add: React.FC = () => {
             .from('kotoba')
             .select("*")
             // Filters
-            .ilike("kanji", "%" + query + "%").limit(5).order("id", {ascending:true})
+            .ilike("kanji", "%" + query + "%").limit(5).order("id", { ascending: true })
         setWordContain(kotoba2);
         console.log(kotoba2);
-
-
-
     };
 
     // Create a debounced version of the search function
@@ -73,28 +82,39 @@ const Add: React.FC = () => {
     return (
         <div className="flex justify-center items-center  text-white ">
 
-            <div className="w-screen lg:px-40 lg:pt-60 px-10 pt-28">
-                <input
-                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-inherit"
-                    type="text"
-                    value={inputValue} // Bind the input value to the state
-                    onChange={handleChange} // Use handleChange to update the state
-                />
+            <form>
 
-                <div className='p-2' >
-                    <Card data={wordMain} />
-                </div>
+                <div className="w-screen lg:px-40 lg:pt-60 px-10 pt-28">
+                    <input
+                        className="shadow border rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:shadow-outline bg-inherit"
+                        type="text"
+                        value={inputValue} // Bind the input value to the state
+                        onChange={handleChange} // Use handleChange to update the state
+                    />
 
 
-           {/* Scrollable section */}
-            <div className=" mt-4"> {/* Adjust max-h-80 as needed */}
-                {wordContain.map((item: any, index: number) => (
-                    <div key={index} className="px-2 pt-2 mx-1">
-                        <Card data={[item]} />
+                    <div className='p-2' >
+                        <button className=' w-full  ' type="button" onClick={(e) => handleClick(e, wordMain[0])} >
+                            {
+                                wordMain[0] &&
+                            <Card data={wordMain} />
+                            }
+                        </button>
                     </div>
-                ))}
-            </div>
-            </div>
+
+
+                    {/* Scrollable section */}
+                    <div className=" mt-4"> {/* Adjust max-h-80 as needed */}
+                        {wordContain.map((item: any, index: number) => (
+                            <div key={index} className="px-2 pt-2 mx-1">
+                                <button className=' w-full ' onClick={(e) => handleClick(e, item)} type="button">
+                                    <Card data={[item]} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </form>
         </div>
     );
 };

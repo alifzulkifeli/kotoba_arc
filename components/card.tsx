@@ -8,12 +8,13 @@ interface CardProps {
 
 // Define the functional component with typed props
 const Card: React.FC<CardProps> = ({ data }) => {
-    data = data[0]
+
+    data = data[0] ? data[0] : data
     
     return ( 
         <div >
             { data &&
-                    <div className='border-solid border-2 border-sky-500 p-2 rounded-xl' >
+                    <div className='border-solid border-2 border-gray-500 p-2 rounded-xl' >
                     <p className=' text-[10px]  leading-none' >{data.kana}</p>
                     <p>{data.kanji}</p>
                     <p className=' text-sm ' >{data.meaning}</p>
