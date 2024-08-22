@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Joystick } from 'react-joystick-component';
 import toast, { Toaster } from 'react-hot-toast';
-import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 import { IJoystickUpdateEvent } from 'react-joystick-component/build/lib/Joystick';
 
@@ -9,13 +8,12 @@ import { IJoystickUpdateEvent } from 'react-joystick-component/build/lib/Joystic
 
 export default function Home() {
 
-  const notifySucces = () => toast.success('+1');
-  const notifyError = () => toast.error('-1');
-
 
   const [direction, setDirection] = useState<any>('')
   const [Q, setQ] = useState<any>([])
-  const [shuffled, setShuffled] = useState([])
+  const [A, setA] = useState<any>([])
+  const [randomNumber, setRandomNumber] = useState<any>(false)
+
 
   const [styleOnOne, setStyleOnOne] = useState('')
   const [styleOnTwo, setStyleOnTwo] = useState('')
@@ -28,97 +26,130 @@ export default function Home() {
 
 
   const getData = async () => {
+    let temp_arr = [];
+    const r = getRandomInt(1, 4); // Random number between 1 and 4
+    setRandomNumber(r);
 
-    let temp: any;
-    let temp_arr = []
-    let temp_rand = getRandomInt(1,4)
-    console.log(temp_rand);
-    
+    // Fetch data from Supabase
+    let { data: kotoba_score, error: scoreError } = await supabase
+      .from('kotoba_score')
+      .select('*')
+      .order("score", { ascending: true })
+      .limit(1);
 
-    // const randomData1 = data[Math.floor(Math.random() * data.length)];
-    // const randomData2 = data[Math.floor(Math.random() * data.length)];
-    // const randomData3 = data[Math.floor(Math.random() * data.length)];
-    // const randomData4 = data[Math.floor(Math.random() * data.length)];
-
-
-    let { data: kotoba_score } = await supabase
-    .from('kotoba_score')       
-    .select('*').order("score",{ascending: true}).limit(1)
-    console.log(kotoba_score![0].kotoba_id); 
-    let q_id = parseInt(kotoba_score![0].kotoba_id)
-    if (q_id < 50) {
-      temp_arr = ([q_id, getRandomInt(q_id, q_id + 100),getRandomInt(q_id, q_id + 100),getRandomInt(q_id, q_id + 100)]);
-
-    } else{
-      temp_arr = ([q_id, getRandomInt(q_id - 50, q_id+100),getRandomInt(q_id - 50, q_id+100),getRandomInt(q_id - 50, q_id+100)]); 
+    if (scoreError) {
+      console.error("Error fetching kotoba_score:", scoreError);
+      return;
     }
 
-    let { data: kotoba, error } = await supabase
-  .from('kotoba')
-  .select("*")
-  .in("id", randomArray(temp_arr))
+    if (kotoba_score?.length) {
+      let q_id = parseInt(kotoba_score[0].kotoba_id);
 
-  temp = kotoba![temp_rand -1]
-  kotoba![temp_rand-1] = kotoba![0]
-  kotoba![0] = temp
- 
-    console.log(kotoba);
-     
-    
+      if (q_id < 50) {
+        temp_arr = [q_id, getRandomInt(q_id, q_id + 100), getRandomInt(q_id, q_id + 100), getRandomInt(q_id, q_id + 100)];
+      } else {
+        temp_arr = [q_id, getRandomInt(q_id - 50, q_id + 50), getRandomInt(q_id - 50, q_id + 50), getRandomInt(q_id - 50, q_id + 50)];
+      }
+
+
+      let temp = temp_arr[r - 1]
+      temp_arr[r - 1] = temp_arr[0]
+      temp_arr[0] = temp
+
+
+      console.log(temp_arr);
+
+
+      let { data: kotoba, error: kotobaError } = await supabase
+        .from('kotoba')
+        .select("*")
+        .in("id", (temp_arr));
+
+      if (kotobaError) {
+        console.error("Error fetching kotoba:", kotobaError);
+        return;
+      }
+
+
+
+      console.log(q_id);
+      console.log(kotoba);
+
+
+      if (kotoba && kotoba.length == 4) {
+        kotoba.forEach(k => {
+          if (k.id == q_id) {
+            setA(k);
+          }
+        });
+
+        setQ(kotoba);
+
+      } else {
+        console.warn("Kotoba array is either null or does not have enough elements. Kotoba length:", kotoba?.length, "Index (r):", r);
+      }
+    } else {
+      console.warn("No kotoba_score data found");
+    }
   }
 
-  function randomArray(arr:any[]){
-    let r = getRandomInt(1,4)
-    let temp = arr![r -1]
-    arr![r-1] = arr![0]
-    arr![0] = temp
 
-    console.log(arr);
-    
-    return arr
-  }
 
   function getRandomInt(min: number, max: number): number {
     if (min > max) {
       throw new Error('Min must be less than or equal to max');
     }
-  
+
     // Ensure the min and max are integers
     min = Math.ceil(min);
     max = Math.floor(max);
-  
+
     // Generate a random integer between min (inclusive) and max (inclusive)
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   useEffect(() => {
-
-
     const fetchData = async () => {
       const posts = await getData();
-      console.log(posts);
     };
-
     fetchData();
-
   }, [])
 
   const handleMove = (e: IJoystickUpdateEvent) => {
     setDirection(e.direction);
-    console.log(e.direction);
-    
-   
+    // console.log(e.direction);
+
+    if (direction === 'FORWARD') {
+      setStyleOnOne("text-blue-400  font-extrabold animate-pulse ")
+      setStyleOnTwo("")
+      setStyleOnThree("")
+      setStyleOnFour("")
+    }
+    else if (direction === 'RIGHT') {
+      setStyleOnOne("")
+      setStyleOnTwo("text-blue-400  font-extrabold animate-pulse ")
+      setStyleOnThree("")
+      setStyleOnFour("")
+    }
+    else if (direction === 'BACKWARD') {
+      setStyleOnOne("")
+      setStyleOnTwo("")
+      setStyleOnThree("text-blue-400  font-extrabold animate-pulse ")
+      setStyleOnFour("")
+    }
+    else if (direction === 'LEFT') {
+      setStyleOnOne("")
+      setStyleOnTwo("")
+      setStyleOnThree("")
+      setStyleOnFour("text-blue-400  font-extrabold animate-pulse ")
+    }
+    else {
+      console.log(false);
+
+    }
   }
 
-  const reset = () => {
-    setStyleOnOne('')
-    setStyleOnTwo('')
-    setStyleOnThree('')
-    setStyleOnFour('')
-    getData()
 
-
-  }
 
   const OK = () => {
     notifySucces()
@@ -133,70 +164,89 @@ export default function Home() {
   }
 
   const handleStop = (e: IJoystickUpdateEvent) => {
-    console.log(direction);
 
-    // if (direction === 'FORWARD') {
-    //   if (Q[shuffled[0]].no === Q[0].no) OK()
-    //   else NG()
-    // }
-    // if (direction === 'RIGHT') {
-    //   if (Q[shuffled[1]].no === Q[0].no) OK()
-    //   else NG()
-    // }
-    // if (direction === 'BACKWARD') {
-    //   if (Q[shuffled[2]].no === Q[0].no) OK()
-    //   else NG()
-    // }
-    // if (direction === 'LEFT') {
-    //   if (Q[shuffled[3]].no === Q[0].no) OK()
-    //   else NG()
-    // }
+    if (direction === 'FORWARD' && Q[0].id == A.id) {
+      showResultAndCleanup(true)
+    }
+    else if (direction === 'RIGHT' && Q[1].id == A.id) {
+      showResultAndCleanup(true)
+    }
+    else if (direction === 'BACKWARD' && Q[2].id == A.id) {
+      showResultAndCleanup(true)
+    }
+    else if (direction === 'LEFT' && Q[3].id == A.id) {
+      showResultAndCleanup(true)
+    }
+    else {
+      showResultAndCleanup(false)
+
+    }
+  }
+
+  const showResultAndCleanup = (isCorrect:any) => {
+    console.log(isCorrect);
+    if (isCorrect) {
+      toast.success("Nice")
+
+    } else{
+      toast.error("Close")
+    }
+
+    setTimeout(() => {
+      setStyleOnOne('')
+      setStyleOnTwo('')
+      setStyleOnThree('')
+      setStyleOnFour('')
+      getData()
+    }, 2000);
+
+    
   }
 
 
   return (
-    <main
-    className={`flex min-h-screen flex-col items-center justify-between w-screen `}
-  >
-    <div className="flex flex-col items-center w-screen ">
-      <div className=" flex place-items-center ">
-        <div className="flex flex-col items-center">
-          <a href={Q[0]?.link}>
-            <h1 className="text-4xl font-bold text-center mt-20">{Q[0]?.kanji}</h1>
-            <h2 className="text-2xl font-semibold text-center">{Q[0]?.reading}</h2>
-          </a>
+    <main className={`flex min-h-screen flex-col items-center justify-between w-screen`}>
+    {Q &&
+      <div className="flex flex-col items-center w-screen h-screen">
+        {/* <div className="flex place-items-center">
+          <div className="flex flex-col items-center">
+            <>
+             
+            </>
+          </div>
+        </div>
+   */}
+        <div className='flex flex-col h-full items-center justify-center w-full'>
+        <h1 className="text-4xl font-bold text-center ">{A.meaning}</h1>
+
+
+          <div className="flex flex-col items-center">
+            <div className={`pt-10 text-lg text-center w-full ${styleOnOne}`}>
+              {Q[0]?.kanji}
+              <p className='text-[10px] '>{Q[0]?.kana}</p>
+            </div>
+            <div className="flex flex-row items-center justify-center w-full">
+              <div className={`w-1/3 text-lg text-right ${styleOnFour}`}>
+                {Q[3]?.kanji}
+                <p className='text-[10px] w-28'>{Q[3]?.kana}</p>
+              </div>
+              <div className='p-10'>
+                <Joystick move={handleMove} stop={handleStop} baseColor="#023047" stickColor='#8ecae6' size={70} />
+              </div>
+              <div className={`w-1/3 text-lg  ${styleOnTwo}`}>
+                {Q[1]?.kanji}
+                <p className='text-[10px] w-28'>{Q[1]?.kana}</p>
+              </div>
+            </div>
+            <div className={`text-lg text-center ${styleOnThree}`}>
+              {Q[2]?.kanji}
+              <p className='text-[10px]'>{Q[2]?.kana}</p>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div className={`pt-20 text-xl ${styleOnOne}`} >
-        {Q[shuffled[0]]?.definition}
-      </div>
-      <div className="flex flex-row items-center w-screen">
-        <div className={`w-full  text-xl text-right ${styleOnTwo}`} >
-          {Q[shuffled[3]]?.definition}
-        </div>
-        <div className='p-10 ' >
-          <Joystick move={handleMove} stop={handleStop} />
-        </div>
-        <div className={`w-full  text-xl ${styleOnThree}`} >
-          {Q[shuffled[1]]?.definition}
-        </div>
-      </div>
-      <div className={` text-xl ${styleOnFour}`} >
-        {Q[shuffled[2]]?.definition}
-      </div>
-
-      <div className="flex flex-col items-center w-screen">
-        <h1 className="text-4xl font-bold text-center mt-20">Score: {score}</h1>
-      </div>
-    </div>
-    <Toaster
-      position="top-right"
-      reverseOrder={true}
-    />
-
-
-
+    }
+    <Toaster position="top-right" reverseOrder={true} />
   </main>
 
   );
