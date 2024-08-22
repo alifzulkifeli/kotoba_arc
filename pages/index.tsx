@@ -12,7 +12,7 @@ export default function Home() {
   const [direction, setDirection] = useState<any>('')
   const [Q, setQ] = useState<any>([])
   const [A, setA] = useState<any>([])
-  const [randomNumber, setRandomNumber] = useState<any>(false)
+
 
 
   const [styleOnOne, setStyleOnOne] = useState('')
@@ -25,17 +25,38 @@ export default function Home() {
   const effect = "text-blue-600 font-bold text-4xl"
 
 
+  function getObjectWithLowestScoreMostly(arr: any) {
+    // Sort the array by score in ascending order
+    const sortedArr = arr.sort((a:any, b:any) => a.score - b.score); 
+    
+    // Get the object with the lowest score (first in sorted array)
+    const lowestScoreObject = sortedArr[0];
+    
+    // Get the object with the highest score (last in sorted array)
+    const highestScoreObject = sortedArr[sortedArr.length - 1];
+    
+    // Generate a random number between 0 and 1
+    const randomValue = Math.random();
+    
+    // Return the highest score object 10% of the time, lowest score object 90% of the time
+    console.log(randomValue < 0.1 ? highestScoreObject : lowestScoreObject);                
+    
+    // return randomValue < 0.1 ? highestScoreObject : lowestScoreObject;
+  }
+
+
+
   const getData = async () => {
     let temp_arr = [];
-    const r = getRandomInt(1, 4); // Random number between 1 and 4
-    setRandomNumber(r);
+    const r = getRandomInt(1, 4);
+
 
     // Fetch data from Supabase
     let { data: kotoba_score, error: scoreError } = await supabase
       .from('kotoba_score')
       .select('*')
       .order("score", { ascending: true })
-      .limit(1);
+      .limit(10);
 
     if (scoreError) {
       console.error("Error fetching kotoba_score:", scoreError);
@@ -43,7 +64,9 @@ export default function Home() {
     }
 
     if (kotoba_score?.length) {
+      getObjectWithLowestScoreMostly(kotoba_score)
       let q_id = parseInt(kotoba_score[0].kotoba_id);
+      setScore(parseInt(kotoba_score[0].score))
 
       if (q_id < 50) {
         temp_arr = [q_id, getRandomInt(q_id, q_id + 100), getRandomInt(q_id, q_id + 100), getRandomInt(q_id, q_id + 100)];
@@ -150,19 +173,6 @@ export default function Home() {
   }
 
 
-
-  const OK = () => {
-    notifySucces()
-    setScore(score + 1)
-    reset()
-  }
-
-  const NG = () => {
-    notifyError()
-    setScore(score - 1)
-    reset()
-  }
-
   const handleStop = (e: IJoystickUpdateEvent) => {
 
     if (direction === 'FORWARD' && Q[0].id == A.id) {
@@ -183,13 +193,25 @@ export default function Home() {
     }
   }
 
-  const showResultAndCleanup = (isCorrect:any) => {
+  const showResultAndCleanup = async (isCorrect: any) => {
+    let timeoutsetting = 2000
     console.log(isCorrect);
     if (isCorrect) {
-      toast.success("Nice")
+      toast.success("")
+      timeoutsetting = 1000
 
-    } else{
-      toast.error("Close")
+      const { data, error } = await supabase
+        .from('kotoba_score')
+        .update({ score: score + 10 })
+        .eq('kotoba_id', A.id)
+        .select()
+    } else {
+      toast.error(`${A.kanji}`)
+      const { data, error } = await supabase
+      .from('kotoba_score')
+      .update({ score: score - 5 })
+      .eq('kotoba_id', A.id)
+      .select()
     }
 
     setTimeout(() => {
@@ -198,56 +220,48 @@ export default function Home() {
       setStyleOnThree('')
       setStyleOnFour('')
       getData()
-    }, 2000);
+    }, timeoutsetting);
 
-    
+
   }
 
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-between w-screen`}>
-    {Q &&
-      <div className="flex flex-col items-center w-screen h-screen">
-        {/* <div className="flex place-items-center">
-          <div className="flex flex-col items-center">
-            <>
-             
-            </>
-          </div>
-        </div>
-   */}
-        <div className='flex flex-col h-full items-center justify-center w-full'>
-        <h1 className="text-4xl font-bold text-center ">{A.meaning}</h1>
+      {Q &&
+        <div className="flex flex-col items-center w-screen h-screen">
+          <div className='flex flex-col h-full items-center justify-center w-full'>
+            <h1 className="text-4xl font-bold text-center ">{A.meaning}</h1>
 
 
-          <div className="flex flex-col items-center">
-            <div className={`pt-10 text-lg text-center w-full ${styleOnOne}`}>
-              {Q[0]?.kanji}
-              <p className='text-[10px] '>{Q[0]?.kana}</p>
-            </div>
-            <div className="flex flex-row items-center justify-center w-full">
-              <div className={`w-1/3 text-lg text-right ${styleOnFour}`}>
-                {Q[3]?.kanji}
-                <p className='text-[10px] w-28'>{Q[3]?.kana}</p>
+            <div className="flex flex-col items-center">
+              <div className={`pt-10 text-xl text-center w-full ${styleOnOne}`}>
+                {Q[0]?.kanji}
+                <p className='text-[10px] '>{Q[0]?.kana}</p>
               </div>
-              <div className='p-10'>
-                <Joystick move={handleMove} stop={handleStop} baseColor="#023047" stickColor='#8ecae6' size={70} />
+              <div className="flex flex-row items-center justify-center w-full">
+                <div className={`w-1/3 text-xl text-right ${styleOnFour}`}>
+                  {Q[3]?.kanji}
+                  <p className='text-[10px] w-28'>{Q[3]?.kana}</p>
+                </div>
+                <div className='p-10'>
+                  <Joystick move={handleMove} stop={handleStop} baseColor="#023047" stickColor='#8ecae6' size={70} />
+                </div>
+                <div className={`w-1/3 text-xl  ${styleOnTwo}`}>
+                  {Q[1]?.kanji}
+                  <p className='text-[10px] w-28'>{Q[1]?.kana}</p>
+                </div>
               </div>
-              <div className={`w-1/3 text-lg  ${styleOnTwo}`}>
-                {Q[1]?.kanji}
-                <p className='text-[10px] w-28'>{Q[1]?.kana}</p>
+              <div className={`text-xl text-center ${styleOnThree}`}>
+                {Q[2]?.kanji}
+                <p className='text-[10px]'>{Q[2]?.kana}</p>
               </div>
-            </div>
-            <div className={`text-lg text-center ${styleOnThree}`}>
-              {Q[2]?.kanji}
-              <p className='text-[10px]'>{Q[2]?.kana}</p>
             </div>
           </div>
         </div>
-      </div>
-    }
-    <Toaster position="top-right" reverseOrder={true} />
-  </main>
+      }
+      <Toaster position="top-right" reverseOrder={true} />
+    </main>
 
   );
 }
