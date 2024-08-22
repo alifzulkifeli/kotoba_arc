@@ -25,3 +25,6 @@ export default withPWA({
     register: true,         // register the PWA service worker
     skipWaiting: true,      // skip waiting for service worker activation
 })(nextConfig);
+
+
+
